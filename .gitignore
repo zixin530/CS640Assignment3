@@ -7,3 +7,11 @@ ip_config
 arp_cache
 rtable.*
 pox
+
+# ignore all
+./
+
+
+# except the files I modify
+./src/edu/wisc/cs/sdn/vnet/
+
