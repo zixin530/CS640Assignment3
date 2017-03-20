@@ -9,12 +9,9 @@ rtable.*
 pox
 
 # ignore all
-./*
+./
 
 
 # except the files I modify
-!./src/edu/wisc/cs/sdn/vnet/
+./src/edu/wisc/cs/sdn/vnet/
 
-# ignore swp files
-*.swp
-*.swo
