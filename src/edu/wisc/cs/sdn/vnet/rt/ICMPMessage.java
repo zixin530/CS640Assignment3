@@ -47,18 +47,12 @@ public class ICMPMessage {
         	
 		ip.setTtl( (byte)64 ).setProtocol( IPv4.PROTOCOL_ICMP ).setSourceAddress( inIface.getIpAddress() ).setDestinationAddress( ipPacket.getSourceAddress() );	
 
-		icmp.setIcmpType( (byte)11 ).setIcmpCode( (byte)0 );
-
-		byte[] serializedIP = ipPacket.serialize();
-		byte[] serializedBody = ipPacket.getPayload().serialize();
-		byte[] body = new byte[ 12 + serializedIP.length ];		
-		System.arraycopy( serializedIP, 0, body, 4, serializedIP.length );	
-		System.arraycopy( serializedBody, 0, body, 4 + serializedIP.length, 8 );
+		setICMP( icmp, ipPacket, 11 );
 
 		router.sendPacket( ether, outIface );
 	}		
 
-	public static void sendDestinationNetUnreachable() {
+	public static void sendDestinationNetUnreachable( Router router, Ethernet original, RouteTable routeTable, ArpCache arpCache, Iface inIface ) {
 		Ethernet ether = new Ethernet();
 		IPv4 ip = new IPv4();
 		ICMP icmp = new ICMP();
@@ -68,8 +62,18 @@ public class ICMPMessage {
 		ip.setPayload(icmp);
 		icmp.setPayload(data);
 
+		IPv4 ipPacket = (IPv4)original.getPayload();
+	  	int srcAddr = ipPacket.getSourceAddress();
+        setEther( ether, inIface, original, routeTable, arpCache );
+		setIP( ip, inIface, srcAddr );
+		setICMP( icmp, ipPacket, 3 );
+
+		router.sendPacket( ether, inIface );
+	}
+
+	private static void setEther( Ethernet ether, Iface inIface, Ethernet original, RouteTable routeTable, ArpCache arpCache ) {
 		ether.setEtherType( Ethernet.TYPE_IPv4 );
-		ether.setSourceMACAddress( inIface.getMacAddress().toBytes() 
+		ether.setSourceMACAddress( inIface.getMacAddress().toBytes() );
 
 		IPv4 ipPacket = (IPv4)original.getPayload();
       
@@ -98,18 +102,20 @@ public class ICMPMessage {
 		}
 
       	ether.setDestinationMACAddress(arpEntry.getMac().toBytes());
-        	
-		ip.setTtl( (byte)64 ).setProtocol( IPv4.PROTOCOL_ICMP ).setSourceAddress( inIface.getIpAddress() ).setDestinationAddress( srcAddr );	
+	}
 
-		icmp.setIcmpType( (byte)3 ).setIcmpCode( (byte)0 );
+	private static void setIP( IPv4 ip, Iface inIface, int srcAddr ) {
+		ip.setTtl( (byte)64 ).setProtocol( IPv4.PROTOCOL_ICMP ).setSourceAddress( inIface.getIpAddress() ).setDestinationAddress( srcAddr );
+	}
+
+	private static void setICMP( ICMP icmp, IPv4 ipPacket, int type ) {
+		icmp.setIcmpType( (byte)type ).setIcmpCode( (byte)0 );
 
 		byte[] serializedIP = ipPacket.serialize();
 		byte[] serializedBody = ipPacket.getPayload().serialize();
 		byte[] body = new byte[ 12 + serializedIP.length ];		
 		System.arraycopy( serializedIP, 0, body, 4, serializedIP.length );	
 		System.arraycopy( serializedBody, 0, body, 4 + serializedIP.length, 8 );
-
-		router.sendPacket( ether, outIface );
 	}
 }
 
