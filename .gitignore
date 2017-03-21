@@ -17,6 +17,10 @@ pox
 # except the files I modify
 !./src/edu/wisc/cs/sdn/vnet/
 
+# except for the product files of ant
+!./bin/
+!*.jar
+
 # ignore swp files
 *.swp
 *.swo
