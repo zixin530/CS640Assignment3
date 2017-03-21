@@ -119,7 +119,10 @@ public class Router extends Device
         // Check TTL
         ipPacket.setTtl((byte)(ipPacket.getTtl()-1));
         if (0 == ipPacket.getTtl())
-        { return; }
+        { 
+			ICMPMessage.sendTimeExceeded( this, etherPacket, routeTable, arpCache, inIface );
+			return; 
+		}
         
         // Reset checksum now that TTL is decremented
         ipPacket.resetChecksum();
