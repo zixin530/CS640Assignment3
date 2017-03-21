@@ -47,7 +47,8 @@ public class ICMPMessage {
         	
 		ip.setTtl( (byte)64 ).setProtocol( IPv4.PROTOCOL_ICMP ).setSourceAddress( inIface.getIpAddress() ).setDestinationAddress( ipPacket.getSourceAddress() );	
 
-		setICMP( icmp, ipPacket, 11 );
+		setICMP( icmp, ipPacket, 11, 0 );
+		setData( data, ipPacket );
 
 		router.sendPacket( ether, outIface );
 	}		
@@ -66,7 +67,50 @@ public class ICMPMessage {
 	  	int srcAddr = ipPacket.getSourceAddress();
         setEther( ether, inIface, original, routeTable, arpCache );
 		setIP( ip, inIface, srcAddr );
-		setICMP( icmp, ipPacket, 3 );
+		setICMP( icmp, ipPacket, 3, 0 );
+		setData( data, ipPacket );
+
+		router.sendPacket( ether, inIface );
+	}
+
+	public static void sendDestinationPortUnreachable( Router router, Ethernet original, RouteTable routeTable, ArpCache arpCache, Iface inIface ) {
+		Ethernet ether = new Ethernet();
+		IPv4 ip = new IPv4();
+		ICMP icmp = new ICMP();
+		Data data = new Data();
+
+		ether.setPayload(ip);
+		ip.setPayload(icmp);
+		icmp.setPayload(data);
+
+		IPv4 ipPacket = (IPv4)original.getPayload();
+	  	int srcAddr = ipPacket.getSourceAddress();
+        setEther( ether, inIface, original, routeTable, arpCache );
+		setIP( ip, inIface, srcAddr );
+		setICMP( icmp, ipPacket, 3 , 3);
+		setData( data, ipPacket );
+
+		router.sendPacket( ether, inIface );
+	}
+
+	public static void sendEchoReply( Router router, Ethernet original, RouteTable routeTable, ArpCache arpCache, Iface inIface ) {
+		Ethernet ether = new Ethernet();
+		IPv4 ip = new IPv4();
+		ICMP icmp = new ICMP();
+		//Data data = new Data();
+
+		ether.setPayload(ip);
+		ip.setPayload(icmp);
+		//icmp.setPayload(data);
+
+		IPv4 ipPacket = (IPv4)original.getPayload();
+	  	int srcAddr = ipPacket.getSourceAddress();
+		int destAddr = ipPacket.getDestinationAddress();
+
+        setEther( ether, inIface, original, routeTable, arpCache );
+		setIP( ip, destAddr, srcAddr );
+		setICMP( icmp, ipPacket, 0 , 0);
+		setEchoData( icmp, (ICMP)ipPacket.getPayload() );
 
 		router.sendPacket( ether, inIface );
 	}
@@ -108,14 +152,26 @@ public class ICMPMessage {
 		ip.setTtl( (byte)64 ).setProtocol( IPv4.PROTOCOL_ICMP ).setSourceAddress( inIface.getIpAddress() ).setDestinationAddress( srcAddr );
 	}
 
-	private static void setICMP( ICMP icmp, IPv4 ipPacket, int type ) {
-		icmp.setIcmpType( (byte)type ).setIcmpCode( (byte)0 );
+	private static void setIP( IPv4 ip, int destAddr, int srcAddr ) {
+		ip.setTtl( (byte)64 ).setProtocol( IPv4.PROTOCOL_ICMP ).setSourceAddress( destAddr ).setDestinationAddress( srcAddr );
+	}
 
+	private static void setICMP( ICMP icmp, IPv4 ipPacket, int type, int code ) {
+		icmp.setIcmpType( (byte)type ).setIcmpCode( (byte)code );
+	}
+
+	private static void setData( Data data, IPv4 ipPacket ) {
 		byte[] serializedIP = ipPacket.serialize();
 		byte[] serializedBody = ipPacket.getPayload().serialize();
 		byte[] body = new byte[ 12 + serializedIP.length ];		
 		System.arraycopy( serializedIP, 0, body, 4, serializedIP.length );	
 		System.arraycopy( serializedBody, 0, body, 4 + serializedIP.length, 8 );
+
+		data.setData( body );
+	}
+
+	private static void setEchoData( ICMP icmp, ICMP icmpOriginal ) {
+		icmp.setPayload( icmpOriginal.getPayload() );	
 	}
 }
 
