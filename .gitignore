@@ -11,6 +11,7 @@ pox
 # ignore all
 ./*
 */
+*
 
 
 # except the files I modify
