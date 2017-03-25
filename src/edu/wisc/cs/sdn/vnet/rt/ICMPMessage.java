@@ -73,6 +73,27 @@ public class ICMPMessage {
 		router.sendPacket( ether, inIface );
 	}
 
+
+	public static void sendDestinationHostUnreachable( Router router, Ethernet original, RouteTable routeTable, ArpCache arpCache, Iface inIface ) {
+		Ethernet ether = new Ethernet();
+		IPv4 ip = new IPv4();
+		ICMP icmp = new ICMP();
+		Data data = new Data();
+
+		ether.setPayload(ip);
+		ip.setPayload(icmp);
+		icmp.setPayload(data);
+
+		IPv4 ipPacket = (IPv4)original.getPayload();
+	  	int srcAddr = ipPacket.getSourceAddress();
+        setEther( ether, inIface, original, routeTable, arpCache );
+		setIP( ip, inIface, srcAddr );
+		setICMP( icmp, ipPacket, 3, 1 );
+		setData( data, ipPacket );
+
+		router.sendPacket( ether, inIface );
+	}
+
 	public static void sendDestinationPortUnreachable( Router router, Ethernet original, RouteTable routeTable, ArpCache arpCache, Iface inIface ) {
 		Ethernet ether = new Ethernet();
 		IPv4 ip = new IPv4();

@@ -131,7 +131,19 @@ public class Router extends Device
         for (Iface iface : this.interfaces.values())
         {
         	if (ipPacket.getDestinationAddress() == iface.getIpAddress())
-        	{ return; }
+        	{ 
+				if( ipPacket.getProtocol() == IPv4.PROTOCOL_TCP || ipPacket.getPRotocol() == IPv4.PROTOCOL_UDP ) {
+					ICMPMessage.sendDestinationPortUnreachable( this, etherPacket, routeTable, arpCache, inIface );	
+				}
+				else if( ipPacket.getProtocol() == IPv4.PROTOCOL_ICMP ) {
+					ICMP temp = (ICMP)ipPacket.getPayload();
+					if( temp.getIcmpType() == 8 ) {
+						ICMPMessage.sendEchoReply( this, etherPacket, routeTable, arpCache, inIface );	
+					}
+				}
+				return;
+			}
+
         }
 		
         // Do route lookup and forward
@@ -154,7 +166,11 @@ public class Router extends Device
 
         // If no entry matched, do nothing
         if (null == bestMatch)
-        { return; }
+        {
+			ICMPMessage.sendDestinationNetUnreachable( this, etherPacket, routeTable, arpCache, inIface );
+		  	return; 
+			}
+
 
         // Make sure we don't sent a packet back out the interface it came in
         Iface outIface = bestMatch.getInterface();
@@ -172,7 +188,11 @@ public class Router extends Device
         // Set destination MAC address in Ethernet header
         ArpEntry arpEntry = this.arpCache.lookup(nextHop);
         if (null == arpEntry)
-        { return; }
+        { 
+			ICMPMessage.sendDestinationHostUnreachable( this, etherPacket, routeTable, arpCache, inIface );
+		  	return; 
+			}
+
         etherPacket.setDestinationMACAddress(arpEntry.getMac().toBytes());
         
         this.sendPacket(etherPacket, outIface);
